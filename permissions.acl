@@ -1,0 +1,131 @@
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * Sample access control list.
+ */
+
+rule PersonCannotSeeInvalid {
+    description: "Person does not have access to nullified documents"
+    participant(p): "org.documents.Person"
+    operation: READ
+    resource(r): "org.documents.Document"
+    condition:(!r.valid)
+    action: DENY
+}
+    
+rule EverybodyCanReadTheirOwnAssets {
+    description: "Allow all participants read access to all resources"
+    participant(p): "org.documents.Person"
+    operation: READ
+    resource(r): "org.documents.Document"
+    condition:(r.owner.getIdentifier()===p.getIdentifier() || r.valid)
+    action: ALLOW
+}
+
+rule PersonCanGiveAccess {
+    description: "Allow the person to issue read access to third parties"
+    participant(p): "org.documents.Person" 
+    operation: CREATE
+    resource(r):"org.documents.Document"
+    transaction: "org.documents.giveAccess"
+  	condition: ((owned(p, r))  && r.valid)
+    action: ALLOW
+}
+
+rule PersonCanRevokeAccess {
+    description: "Allow the persons to revoke read access to third parties"
+    participant(p): "org.documents.Person" 
+    operation: CREATE
+    resource(r):"org.documents.Document"
+    transaction: "org.documents.revokeAccess"
+    condition:(owned(p, r))
+    action: ALLOW
+}
+
+rule OrgCanIssueDocument {
+    description: "Allow organizations to issue new documents"
+    participant(p): "org.documents.Organization" 
+    operation: CREATE
+    resource(r): "org.documents.Document"
+    transaction: "org.documents.issueDocument"
+    condition:  (validTemplate(p, r))
+    action: ALLOW
+}
+
+rule OrgCanRevokeDocument {
+    description: "Allow organizations to revoke issued documents"
+    participant(p): "org.documents.Organization" 
+    operation: CREATE
+    resource(r): "org.documents.Document"
+    transaction: "org.documents.revokeDocument"
+    condition:  (issued(p, r))
+    action: ALLOW
+}
+
+rule OrgCanUpdateDocument {
+    description: "Allow organizations to update issued documents"
+    participant(p): "org.documents.Organization" 
+    operation: CREATE
+    resource(r): "org.documents.Document"
+    transaction: "org.documents.updateDocument"
+    condition:  (issued(p, r))
+    action: ALLOW
+}
+
+rule OrgCanTerminateAccess {
+    description: "Allow third party organizations to terminate their access to a document"
+    participant(p): "org.documents.Organization" 
+    operation: CREATE
+    resource(r): "org.documents.Document"
+    transaction: "org.documents.terminateAccess"
+    condition:  (thirdParty(p, r))
+    action: ALLOW
+}
+
+rule OrgCanIssueTemplate {
+    description: "Allow organisations to issue templates"
+    participant: "org.documents.Organization" 
+    operation: CREATE
+    resource: "org.documents.Template"
+    transaction: "org.documents.issueTemplate"
+    action: ALLOW
+}
+
+rule SystemACL {
+    description: "System ACL to permit all access"
+    participant: "org.hyperledger.composer.system.Participant"
+    operation: ALL
+    resource: "org.hyperledger.composer.system.**"
+    action: ALLOW
+}
+
+rule NetworkAdminUser {
+    description: "Grant business network administrators full access to user resources"
+    participant: "org.hyperledger.composer.system.NetworkAdmin"
+    operation: ALL
+    resource: "**"
+    action: ALLOW
+}
+
+rule NetworkAdminSystem {
+    description: "Grant business network administrators full access to system resources"
+    participant: "org.hyperledger.composer.system.NetworkAdmin"
+    operation: ALL
+    resource: "org.hyperledger.composer.system.**"
+    action: ALLOW
+}
+
+
+
